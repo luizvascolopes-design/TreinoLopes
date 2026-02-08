@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <title>Fitness Lopes</title>
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+
+  <style>
+    :root { --primary:#c62828; --bg:#000; --card:#111; --text:#fff; }
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);}
+    header{padding:18px;text-align:center;font-size:20px;font-weight:bold;border-bottom:4px solid var(--primary);letter-spacing:1px;}
+    nav.main{display:flex;background:#111;position:sticky;top:0;z-index:10;}
+    nav.main button{flex:1;padding:12px 4px;border:none;background:#000;color:#aaa;font-size:12px;font-weight:bold;}
+    nav.main button.active{background:#1a1a1a;color:#fff;border-bottom:3px solid var(--primary);}
+    .main-section{display:none;padding:12px 12px 80px;}
+    .main-section.active{display:block;}
+    .card{background:var(--card);padding:15px;border-radius:10px;border-left:4px solid var(--primary);margin-bottom:15px;}
+    h2{margin:0 0 10px;font-size:18px;color:var(--primary);}
+    h3{font-size:15px;margin:15px 0 8px;color:#ddd;border-bottom:1px solid #333;padding-bottom:4px;}
+    nav.semanas{display:flex;background:#000;overflow-x:auto;gap:6px;padding:8px 0;}
+    nav.semanas button{flex:0 0 auto;min-width:55px;padding:8px;border-radius:7px;border:1px solid #333;background:#111;color:#fff;font-size:12px;}
+    nav.semanas button.active{background:var(--primary);border-color:var(--primary);}
+    .semana{display:none;}
+    .dias{display:flex;gap:4px;flex-wrap:nowrap;overflow-x:auto;margin:8px 0;}
+    .dias button{flex:0 0 auto;min-width:70px;padding:8px;font-size:11px;border:none;border-radius:6px;background:#222;color:#fff;}
+    .dias button.active-dia{background:#444;border:1px solid var(--primary);}
+    .exercicio{border-radius:8px;background:#181818;padding:10px;margin:8px 0;}
+    .exercicio label{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:bold;margin-bottom:6px;}
+    input[type=checkbox]{width:20px;height:20px;accent-color:var(--primary);}
+    .serie{display:flex;gap:6px;margin:4px 0;}
+    .serie input{flex:1;padding:8px;border-radius:6px;border:1px solid #444;background:#222;color:#fff;text-align:center;font-size:13px;}
+    .progress{background:#222;height:10px;border-radius:10px;margin:6px 0;overflow:hidden;}
+    .progress span{display:block;height:100%;width:0%;background:linear-gradient(90deg,#c62828,#ff5252);}
+    textarea,.medida-input{
+      width:100%;margin:4px 0;
+      background:#181818;color:#fff;
+      border:1px solid #333;border-radius:8px;padding:8px;font-size:14px;
+    }
+    #txtGeral{text-align:center;font-weight:bold;font-size:20px;margin:6px 0 0;}
+  </style>
+</head>
+<body>
+
+<header>FITNESS LOPES</header>
+
+<nav class="main">
+  <button class="active" onclick="abrir('dash',this)">DASH</button>
+  <button onclick="abrir('treinos',this)">TREINOS</button>
+  <button onclick="abrir('dieta',this)">DIETA</button>
+  <button onclick="abrir('medidas',this)">MEDIDAS</button>
+</nav>
+
+<section id="dash" class="main-section active">
+  <div class="card">
+    <h2>Progresso Geral</h2>
+    <div class="progress"><span id="progGeral"></span></div>
+    <p id="txtGeral">0%</p>
+  </div>
+</section>
+
+<section id="treinos" class="main-section">
+  <nav class="semanas" id="navSemanas"></nav>
+  <div id="container"></div>
+</section>
+
+<section id="dieta" class="main-section">
+  <div class="card" id="dietaContainer">
+    <h2>Dieta Semanal</h2>
+  </div>
+</section>
+
+<section id="medidas" class="main-section">
+  <div class="card" id="medidasContainer">
+    <h2>Medidas</h2>
+  </div>
+</section>
+
+<script>
+// ================== DADOS DE TREINOS ==================
+const treinos = {
+"1-1":["Puxador Costas Pegada Inversa","Remada Unilateral","Remada Cavalinho","Remada Curvada","Remada Sentado com Cabos","Levantamento Terra","Hiperextensão Lombar"],
+"1-2":["Supino Inclinado Barra","Crucifixo Inclinado","Supino Reto Barra","Crucifixo Reto","Supino Declinado Halteres","Crucifixo Declinado","Pullover com Halteres"],
+"1-3":["Cadeira Extensora","Leg Press","Agachamento Hack","Agachamento Frontal","Passadas com Halteres","Cadeira Extensora 2","Mesa Flexora","Cadeira Flexora","Flexora Unilateral","Stiff","Panturrilhas Sentado","Panturrilhas no Leg Press"],
+"1-5":["Mergulho para Tríceps","Tríceps Puxador Corda","Tríceps Francês","Tríceps Supino","Tríceps Puxador Barra Reta","Rosca Direta","Rosca Scott","Rosca Alternada","Rosca Martelo","Rosca Inversa"],
+"1-6":["Elevação Lateral Sentado","Desenvolvimento com Halteres","Elevação Frontal com Barra","Elevação Lateral Cabos","Elevação Posterior","Encolhimento de Ombros Halteres"],
+
+"2-1":["Puxador Costas Pegada Inversa","Remada Unilateral","Remada Cavalinho","Remada Curvada","Remada Sentado com Cabos","Levantamento Terra","Hiperextensão Lombar","Pullover no Puxador"],
+"2-2":["Supino Inclinado Barra","Supino Inclinado Halteres","Supino Reto Barra","Crucifixo Inclinado","Supino Hammer","Supino Declinado Halteres","Cross Over Polia Alta"],
+"2-3":["Cadeira Extensora","Leg Press","Agachamento Hack","Agachamento","Passadas com Barra","Mesa Flexora","Cadeira Flexora","Flexora em Pé","Stiff","Panturrilhas em Pé","Panturrilhas Sentado"],
+"2-5":["Tríceps Puxador Corda","Tríceps Supino","Mergulho para Tríceps","Tríceps Puxador Barra Curva","Tríceps Testa","Rosca Direta Barra EZ","Rosca Alternada Sentado","Rosca Concentrada Spider","Rosca Scott Unilateral","Rosca Inversa"],
+"2-6":["Desenvolvimento com Halteres","Elevação Lateral Halteres","Elevação Frontal Barra","Elevação Posterior Sentado","Posterior de Ombros com Cabos Sentado","Encolhimento de Ombro Rotativo com Barra"],
+
+"3-1":["Puxador Pegada Aberta","Remada Unilateral","Remada Curvada","Levantamento Terra","Remada Cavalinho","Puxador por Trás da Nuca","Remada Sentado com Cabos","Hiperextensão Lombar"],
+"3-2":["Supino Inclinado com Barra","Supino Reto com Halteres","Supino Hammer","Voador","Supino Declinado Halteres","Cross Over Polia Baixa","Crucifixo Declinado"],
+"3-3":["Cadeira Extensora","Agachamento Frontal","Agachamento Hack","Passadas com Barra","Cadeira Extensora 2","Mesa Flexora","Stiff","Cadeira Flexora","Leg Press Pés no Alto","Panturrilhas em Pé","Panturrilhas Sentado"],
+"3-5":["Tríceps Por Trás com Corda","Extensão de Tríceps Unilateral","Tríceps Supino","Tríceps Testa","Tríceps Coice","Mergulho para Tríceps","Rosca Direta","Rosca Alternada","Rosca Scott Unilateral","Rosca Martelo","Rosca Inversa"],
+"3-6":["Elevação Lateral Halteres","Desenvolvimento com Halteres","Elevação Lateral com Cabos","Elevação Frontal com Barra","Elevação Posterior Sentado","Encolhimento de Ombro com Barra"],
+
+"4-1":["Puxador Pegada Fechada","Remada Cavalinho","Remada Unilateral","Remada na Máquina","Puxador Costas Pegada Inversa","Remada Sentado com Cabos"],
+"4-2":["Supino Inclinado Halteres","Supino Reto Barra","Crucifixo Reto","Supino Declinado Barra","Crucifixo Inclinado","Supino Declinado Halteres","Cross Over Polia Alta"],
+"4-3":["Cadeira Extensora","Leg Press","Agachamento","Passadas com Barra","Cadeira Extensora 2","Mesa Flexora","Stiff","Flexora em Pé","Leg Press Pés no Alto","Panturrilhas Sentado","Panturrilhas em Pé"],
+"4-5":["Tríceps Puxador Barra Curva","Tríceps Francês Cabos","Tríceps Supino","Tríceps Testa","Rosca Direta Barra EZ","Rosca Alternada","Rosca Spider","Rosca Scott Unilateral","Rosca Martelo"],
+"4-6":["Desenvolvimento com Halteres","Elevação Lateral Halteres","Elevação Frontal Halteres","Elevação Posterior Sentado","Voador Inverso","Elevação Lateral Cabos","Remada em Pé","Encolhimento de Ombros Por Trás","Encolhimento de Ombros Halteres"],
+
+"5-1":["Barra Fixa Frontal","Puxador Pegada Inversa","Remada Curvada Pegada Inversa","Remada Unilateral","Remada na Máquina","Remada Sentado com Cabos","Hiperextensão Lombar","Levantamento Terra","Pullover com Halteres"],
+"5-2":["Supino Inclinado Barra","Crucifixo Inclinado","Supino Reto Barra","Crucifixo Reto","Supino Declinado Halteres","Crucifixo Declinado","Pullover com Halteres"],
+"5-3":["Cadeira Extensora","Leg Press","Agachamento Hack","Agachamento","Passadas com Barra","Mesa Flexora","Panturrilhas em Pé","Panturrilhas Sentado"],
+"5-5":["Tríceps Puxador Corda","Tríceps Supino","Mergulho para Tríceps","Tríceps Puxador Barra Reta","Tríceps Testa","Rosca Direta Barra EZ","Rosca Alternada","Rosca Concentrada Spider","Rosca Concentrada Unilateral","Rosca Inversa"],
+"5-6":["Desenvolvimento com Halteres","Elevação Lateral Halteres","Elevação Frontal Sentado Halteres Lado","Elevação Posterior Sentado","Voador Inverso","Elevação Lateral Cabos","Encolhimento de Ombros Halteres"],
+
+"6-1":["Puxador Pegada Fechada","Remada Cavalinho","Remada Unilateral","Remada na Máquina","Puxador Costas Pegada Inversa","Remada Sentado com Cabos"],
+"6-2":["Supino Inclinado Barra","Supino Inclinado Halteres","Supino Reto Barra","Crucifixo Inclinado","Supino Hammer","Supino Declinado Halteres","Cross Over Polia Alta"],
+"6-3":["Cadeira Extensora","Leg Press","Agachamento Hack","Agachamento","Passadas com Halteres","Panturrilhas em Pé","Panturrilhas Sentado"],
+"6-5":["Tríceps Puxador Corda","Tríceps Supino","Mergulho para Tríceps","Tríceps Puxador Barra Curva","Tríceps Testa","Rosca Direta Barra EZ","Rosca Alternada","Rosca Concentrada Spider","Rosca Concentrada Unilateral","Rosca Martelo"],
+"6-6":["Desenvolvimento com Barra","Elevação Lateral Halteres","Elevação Frontal Barra","Elevação Posterior Sentado","Posterior de Ombros Cabo Alto","Encolhimento de Ombros com Barra"],
+
+"7-1":["Puxador Costas Pegada Inversa","Levantamento Terra","Remada Unilateral","Remada Curvada Pegada Inversa","Remada Cavalinho","Remada Sentado com Cabos","Hiperextensão Lombar","Pullover no Puxador"],
+"7-2":["Supino Inclinado Barra","Supino Reto Halteres","Supino Hammer","Voador","Supino Declinado","Cross Over Polia Alta","Crucifixo Declinado"],
+"7-3":["Cadeira Extensora","Agachamento Frontal","Agachamento Hack","Passadas com Barra","Cadeira Extensora 2","Mesa Flexora","Stiff","Flexora Unilateral","Leg Press Pés no Alto","Panturrilhas em Pé","Panturrilhas Sentado"],
+"7-5":["Tríceps Puxador Barra Curva","Tríceps Puxador Corda Por Trás","Tríceps Supino","Tríceps Testa","Rosca Direta","Rosca Alternada Sentado","Rosca Scott","Rosca Scott Unilateral","Rosca Inversa"],
+"7-6":["Desenvolvimento com Barra","Elevação Lateral Halteres","Elevação Frontal Barra","Elevação Posterior Sentado","Posterior de Ombros com Cabos","Elevação Lateral com Cabos","Encolhimento de Ombros com Barra"],
+
+"8-1":["Puxador Costas Pegada Inversa","Remada Sentado com Cabos","Remada Cavalinho","Pullover com Barra","Remada na Máquina","Remada Unilateral","Hiperextensão Lombar"],
+"8-2":["Supino Inclinado Halteres","Supino Reto Barra","Crucifixo Reto","Supino Declinado","Crucifixo Inclinado","Supino Declinado Halteres","Cross Over Polia Alta"],
+"8-3":["Cadeira Extensora","Agachamento Frontal","Agachamento Hack","Agachamento Pistol no Smith","Cadeira Flexora","Mesa Flexora","Stiff","Leg Press Pés no Alto","Cadeira Adutora","Cadeira Abdutora","Panturrilhas em Pé","Panturrilhas Sentado"],
+"8-5":["Tríceps Puxador Corda","Tríceps Puxador Barra Reta","Mergulho para Tríceps","Tríceps Supino","Tríceps Francês","Rosca Direta","Rosca Scott Unilateral","Rosca Concentrada Unilateral","Rosca Alternada Sentado","Rosca Martelo"],
+"8-6":["Desenvolvimento com Halteres","Elevação Lateral Halteres","Desenvolvimento com Barra","Elevação Lateral Cabos","Elevação Frontal Barra","Elevação Lateral Sentado","Encolhimento de Ombros Halteres","Encolhimento de Ombros com Barra"]
+};
+
+// -------- navegação principal --------
+function abrir(id,btn){
+  document.querySelectorAll(".main-section").forEach(s=>s.classList.remove("active"));
+  document.querySelectorAll("nav.main button").forEach(b=>b.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  btn.classList.add("active");
+  window.scrollTo(0,0);
+}
+
+// -------- montar treinos --------
+const navSemanas=document.getElementById("navSemanas");
+const container=document.getElementById("container");
+
+for(let s=1;s<=8;s++){
+  const btn=document.createElement("button");
+  btn.textContent="S"+s;
+  btn.onclick=()=>{
+    document.querySelectorAll(".semana").forEach(x=>x.style.display="none");
+    document.querySelectorAll("nav.semanas button").forEach(b=>b.classList.remove("active"));
+    document.getElementById("Sem"+s).style.display="block";
+    btn.classList.add("active");
+    calc();
+  };
+  navSemanas.appendChild(btn);
+
+  const sem=document.createElement("div");
+  sem.className="semana";
+  sem.id="Sem"+s;
+  sem.style.display="none";
+
+  const card=document.createElement("div");
+  card.className="card";
+  card.innerHTML=`<h2>Semana ${s}</h2>`;
+
+  const diasNav=document.createElement("div");
+  diasNav.className="dias";
+
+  for(let d=1;d<=7;d++){
+    const b=document.createElement("button");
+    b.textContent="Dia "+d;
+    b.onclick=()=>{
+      document.querySelectorAll(`#Sem${s} [id^="S${s}D"]`).forEach(x=>x.style.display="none");
+      document.querySelectorAll(`#Sem${s} .dias button`).forEach(x=>x.classList.remove("active-dia"));
+      document.getElementById(`S${s}D${d}`).style.display="block";
+      b.classList.add("active-dia");
+    };
+    if(d===1) b.classList.add("active-dia");
+    diasNav.appendChild(b);
+  }
+  card.appendChild(diasNav);
+
+  for(let d=1;d<=7;d++){
+    const bloco=document.createElement("div");
+    bloco.id=`S${s}D${d}`;
+    bloco.style.display=d===1?"block":"none";
+    bloco.innerHTML=`<h3>Dia ${d}</h3><div class="progress"><span></span></div>`;
+
+    if(d!==4){
+      const keyCardio=`CHK_${s}_${d}_cardio`;
+      const exDiv=document.createElement("div");
+      exDiv.className="exercicio";
+      exDiv.innerHTML=`
+        <label>
+          <input type="checkbox" data-key="${keyCardio}"> Cardio – 30 min
+        </label>`;
+      bloco.appendChild(exDiv);
+    }
+
+    const lista=treinos[`${s}-${d}`];
+    if(lista){
+      lista.forEach(ex=>{
+        const k=`CHK_${s}_${d}_${ex}`;
+        const exId=`${s}_${d}_${ex}`;
+        const exDiv=document.createElement("div");
+        exDiv.className="exercicio";
+        exDiv.innerHTML=`<label><input type="checkbox" data-key="${k}"> ${ex}</label>`;
+        for(let i=1;i<=4;i++){
+          const serie=document.createElement("div");
+          serie.className="serie";
+          const inKg=document.createElement("input");
+          inKg.placeholder="kg";
+          inKg.value=localStorage.getItem(exId+'_kg'+i)||"";
+          inKg.oninput=()=>localStorage.setItem(exId+'_kg'+i,inKg.value);
+          const inRep=document.createElement("input");
+          inRep.placeholder="rep";
+          inRep.value=localStorage.getItem(exId+'_rep'+i)||"12";
+          inRep.oninput=()=>localStorage.setItem(exId+'_rep'+i,inRep.value);
+          serie.appendChild(inKg);
+          serie.appendChild(inRep);
+          exDiv.appendChild(serie);
+        }
+        bloco.appendChild(exDiv);
+      });
+    }
+    card.appendChild(bloco);
+  }
+
+  sem.appendChild(card);
+  container.appendChild(sem);
+}
+
+// -------- DIETA --------
+const dietaContainer=document.getElementById("dietaContainer");
+const diasSemana=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+const refeicoes=["Jejum","Café da Manhã","Lanche 1","Almoço","Lanche 2","Pré-Treino","Pós-Treino","Jantar","Ceia"];
+
+diasSemana.forEach(d=>{
+  const h3=document.createElement("h3");
+  h3.textContent=d;
+  dietaContainer.appendChild(h3);
+  refeicoes.forEach(r=>{
+    const k=`dieta_${d}_${r}`;
+    const ta=document.createElement("textarea");
+    ta.placeholder=r;
+    ta.value=localStorage.getItem(k)||"";
+    ta.oninput=()=>localStorage.setItem(k,ta.value);
+    dietaContainer.appendChild(ta);
+  });
+});
+
+// -------- MEDIDAS --------
+const medidasContainer=document.getElementById("medidasContainer");
+[
+"Peso (kg)","Cintura","Braço Direito","Braço Esquerdo",
+"Coxa Direita","Coxa Esquerda",
+"Panturrilha Direita","Panturrilha Esquerda",
+"Peito","Antebraço Direito","Antebraço Esquerdo","Ombro"
+].forEach(m=>{
+  const k="med_"+m;
+  const input=document.createElement("input");
+  input.className="medida-input";
+  input.placeholder=m;
+  input.value=localStorage.getItem(k)||"";
+  input.oninput=()=>localStorage.setItem(k,input.value);
+  medidasContainer.appendChild(input);
+});
+
+// -------- Progresso --------
+function calc(){
+  document.querySelectorAll(".progress span").forEach(span=>{
+    const bloco=span.closest('[id^="S"]');
+    if(!bloco) return;
+    const checks=bloco.querySelectorAll('.exercicio input[type=checkbox]');
+    const m=[...checks].filter(c=>c.checked).length;
+    const p=checks.length?Math.round(m/checks.length*100):0;
+    span.style.width=p+"%";
+  });
+
+  const all=document.querySelectorAll('input[type=checkbox]');
+  const totalMarc=[...all].filter(c=>c.checked).length;
+  const geral=all.length?Math.round(totalMarc/all.length*100):0;
+  document.getElementById("progGeral").style.width=geral+"%";
+  document.getElementById("txtGeral").innerText=geral+"%";
+}
+
+// restaurar checks
+function restaurarChecks(){
+  document.querySelectorAll('input[type=checkbox]').forEach(c=>{
+    const key=c.dataset.key;
+    if(key && localStorage.getItem(key)==="true") c.checked=true;
+  });
+}
+
+// event delegation para checkboxes
+document.addEventListener("change",e=>{
+  if(e.target.matches('input[type=checkbox][data-key]')){
+    localStorage.setItem(e.target.dataset.key,e.target.checked);
+    calc();
+  }
+});
+
+// inicialização
+window.addEventListener("load",()=>{
+  if(navSemanas.children.length>0) navSemanas.children[0].click();
+  restaurarChecks();
+  calc();
+});
+
+// -------- Service Worker PWA --------
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <title>Fitness Lopes</title>
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+
+  <style>
+    :root { --primary:#c62828; --bg:#000; --card:#111; --text:#fff; }
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);}
+    header{padding:18px;text-align:center;font-size:20px;font-weight:bold;border-bottom:4px solid var(--primary);letter-spacing:1px;}
+    nav.main{display:flex;background:#111;position:sticky;top:0;z-index:10;}
+    nav.main button{flex:1;padding:12px 4px;border:none;background:#000;color:#aaa;font-size:12px;font-weight:bold;}
+    nav.main button.active{background:#1a1a1a;color:#fff;border-bottom:3px solid var(--primary);}
+    .main-section{display:none;padding:12px 12px 80px;}
+    .main-section.active{display:block;}
+    .card{background:var(--card);padding:15px;border-radius:10px;border-left:4px solid var(--primary);margin-bottom:15px;}
+    h2{margin:0 0 10px;font-size:18px;color:var(--primary);}
+    h3{font-size:15px;margin:15px 0 8px;color:#ddd;border-bottom:1px solid #333;padding-bottom:4px;}
+    nav.semanas{display:flex;background:#000;overflow-x:auto;gap:6px;padding:8px 0;}
+    nav.semanas button{flex:0 0 auto;min-width:55px;padding:8px;border-radius:7px;border:1px solid #333;background:#111;color:#fff;font-size:12px;}
+    nav.semanas button.active{background:var(--primary);border-color:var(--primary);}
+    .semana{display:none;}
+    .dias{display:flex;gap:4px;flex-wrap:nowrap;overflow-x:auto;margin:8px 0;}
+    .dias button{flex:0 0 auto;min-width:70px;padding:8px;font-size:11px;border:none;border-radius:6px;background:#222;color:#fff;}
+    .dias button.active-dia{background:#444;border:1px solid var(--primary);}
+    .exercicio{border-radius:8px;background:#181818;padding:10px;margin:8px 0;}
+    .exercicio label{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:bold;margin-bottom:6px;}
+    input[type=checkbox]{width:20px;height:20px;accent-color:var(--primary);}
+    .serie{display:flex;gap:6px;margin:4px 0;}
+    .serie input{flex:1;padding:8px;border-radius:6px;border:1px solid #444;background:#222;color:#fff;text-align:center;font-size:13px;}
+    .progress{background:#222;height:10px;border-radius:10px;margin:6px 0;overflow:hidden;}
+    .progress span{display:block;height:100%;width:0%;background:linear-gradient(90deg,#c62828,#ff5252);}
+    textarea,.medida-input{
+      width:100%;margin:4px 0;
+      background:#181818;color:#fff;
+      border:1px solid #333;border-radius:8px;padding:8px;font-size:14px;
+    }
+    #txtGeral{text-align:center;font-weight:bold;font-size:20px;margin:6px 0 0;}
+  </style>
+</head>
+<body>
+
+<header>FITNESS LOPES</header>
+
+<nav class="main">
+  <button class="active" onclick="abrir('dash',this)">DASH</button>
+  <button onclick="abrir('treinos',this)">TREINOS</button>
+  <button onclick="abrir('dieta',this)">DIETA</button>
+  <button onclick="abrir('medidas',this)">MEDIDAS</button>
+</nav>
+
+<section id="dash" class="main-section active">
+  <div class="card">
+    <h2>Progresso Geral</h2>
+    <div class="progress"><span id="progGeral"></span></div>
+    <p id="txtGeral">0%</p>
+  </div>
+</section>
+
+<section id="treinos" class="main-section">
+  <nav class="semanas" id="navSemanas"></nav>
+  <div id="container"></div>
+</section>
+
+<section id="dieta" class="main-section">
+  <div class="card" id="dietaContainer">
+    <h2>Dieta Semanal</h2>
+  </div>
+</section>
+
+<section id="medidas" class="main-section">
+  <div class="card" id="medidasContainer">
+    <h2>Medidas</h2>
+  </div>
+</section>
+
+<script>
+// ================== DADOS DE TREINOS ==================
+const treinos = {
+"1-1":["Puxador Costas Pegada Inversa","Remada Unilateral","Remada Cavalinho","Remada Curvada","Remada Sentado com Cabos","Levantamento Terra","Hiperextensão Lombar"],
+"1-2":["Supino Inclinado Barra","Crucifixo Inclinado","Supino Reto Barra","Crucifixo Reto","Supino Declinado Halteres","Crucifixo Declinado","Pullover com Halteres"],
+"1-3":["Cadeira Extensora","Leg Press","Agachamento Hack","Agachamento Frontal","Passadas com Halteres","Cadeira Extensora 2","Mesa Flexora","Cadeira Flexora","Flexora Unilateral","Stiff","Panturrilhas Sentado","Panturrilhas no Leg Press"],
+"1-5":["Mergulho para Tríceps","Tríceps Puxador Corda","Tríceps Francês","Tríceps Supino","Tríceps Puxador Barra Reta","Rosca Direta","Rosca Scott","Rosca Alternada","Rosca Martelo","Rosca Inversa"],
+"1-6":["Elevação Lateral Sentado","Desenvolvimento com Halteres","Elevação Frontal com Barra","Elevação Lateral Cabos","Elevação Posterior","Encolhimento de Ombros Halteres"],
+
+"2-1":["Puxador Costas Pegada Inversa","Remada Unilateral","Remada Cavalinho","Remada Curvada","Remada Sentado com Cabos","Levantamento Terra","Hiperextensão Lombar","Pullover no Puxador"],
+"2-2":["Supino Inclinado Barra","Supino Inclinado Halteres","Supino Reto Barra","Crucifixo Inclinado","Supino Hammer","Supino Declinado Halteres","Cross Over Polia Alta"],
+"2-3":["Cadeira Extensora","Leg Press","Agachamento Hack","Agachamento","Passadas com Barra","Mesa Flexora","Cadeira Flexora","Flexora em Pé","Stiff","Panturrilhas em Pé","Panturrilhas Sentado"],
+"2-5":["Tríceps Puxador Corda","Tríceps Supino","Mergulho para Tríceps","Tríceps Puxador Barra Curva","Tríceps Testa","Rosca Direta Barra EZ","Rosca Alternada Sentado","Rosca Concentrada Spider","Rosca Scott Unilateral","Rosca Inversa"],
+"2-6":["Desenvolvimento com Halteres","Elevação Lateral Halteres","Elevação Frontal Barra","Elevação Posterior Sentado","Posterior de Ombros com Cabos Sentado","Encolhimento de Ombro Rotativo com Barra"],
+
+"3-1":["Puxador Pegada Aberta","Remada Unilateral","Remada Curvada","Levantamento Terra","Remada Cavalinho","Puxador por Trás da Nuca","Remada Sentado com Cabos","Hiperextensão Lombar"],
+"3-2":["Supino Inclinado com Barra","Supino Reto com Halteres","Supino Hammer","Voador","Supino Declinado Halteres","Cross Over Polia Baixa","Crucifixo Declinado"],
+"3-3":["Cadeira Extensora","Agachamento Frontal","Agachamento Hack","Passadas com Barra","Cadeira Extensora 2","Mesa Flexora","Stiff","Cadeira Flexora","Leg Press Pés no Alto","Panturrilhas em Pé","Panturrilhas Sentado"],
+"3-5":["Tríceps Por Trás com Corda","Extensão de Tríceps Unilateral","Tríceps Supino","Tríceps Testa","Tríceps Coice","Mergulho para Tríceps","Rosca Direta","Rosca Alternada","Rosca Scott Unilateral","Rosca Martelo","Rosca Inversa"],
+"3-6":["Elevação Lateral Halteres","Desenvolvimento com Halteres","Elevação Lateral com Cabos","Elevação Frontal com Barra","Elevação Posterior Sentado","Encolhimento de Ombro com Barra"],
+
+"4-1":["Puxador Pegada Fechada","Remada Cavalinho","Remada Unilateral","Remada na Máquina","Puxador Costas Pegada Inversa","Remada Sentado com Cabos"],
+"4-2":["Supino Inclinado Halteres","Supino Reto Barra","Crucifixo Reto","Supino Declinado Barra","Crucifixo Inclinado","Supino Declinado Halteres","Cross Over Polia Alta"],
+"4-3":["Cadeira Extensora","Leg Press","Agachamento","Passadas com Barra","Cadeira Extensora 2","Mesa Flexora","Stiff","Flexora em Pé","Leg Press Pés no Alto","Panturrilhas Sentado","Panturrilhas em Pé"],
+"4-5":["Tríceps Puxador Barra Curva","Tríceps Francês Cabos","Tríceps Supino","Tríceps Testa","Rosca Direta Barra EZ","Rosca Alternada","Rosca Spider","Rosca Scott Unilateral","Rosca Martelo"],
+"4-6":["Desenvolvimento com Halteres","Elevação Lateral Halteres","Elevação Frontal Halteres","Elevação Posterior Sentado","Voador Inverso","Elevação Lateral Cabos","Remada em Pé","Encolhimento de Ombros Por Trás","Encolhimento de Ombros Halteres"],
+
+"5-1":["Barra Fixa Frontal","Puxador Pegada Inversa","Remada Curvada Pegada Inversa","Remada Unilateral","Remada na Máquina","Remada Sentado com Cabos","Hiperextensão Lombar","Levantamento Terra","Pullover com Halteres"],
+"5-2":["Supino Inclinado Barra","Crucifixo Inclinado","Supino Reto Barra","Crucifixo Reto","Supino Declinado Halteres","Crucifixo Declinado","Pullover com Halteres"],
+"5-3":["Cadeira Extensora","Leg Press","Agachamento Hack","Agachamento","Passadas com Barra","Mesa Flexora","Panturrilhas em Pé","Panturrilhas Sentado"],
+"5-5":["Tríceps Puxador Corda","Tríceps Supino","Mergulho para Tríceps","Tríceps Puxador Barra Reta","Tríceps Testa","Rosca Direta Barra EZ","Rosca Alternada","Rosca Concentrada Spider","Rosca Concentrada Unilateral","Rosca Inversa"],
+"5-6":["Desenvolvimento com Halteres","Elevação Lateral Halteres","Elevação Frontal Sentado Halteres Lado","Elevação Posterior Sentado","Voador Inverso","Elevação Lateral Cabos","Encolhimento de Ombros Halteres"],
+
+"6-1":["Puxador Pegada Fechada","Remada Cavalinho","Remada Unilateral","Remada na Máquina","Puxador Costas Pegada Inversa","Remada Sentado com Cabos"],
+"6-2":["Supino Inclinado Barra","Supino Inclinado Halteres","Supino Reto Barra","Crucifixo Inclinado","Supino Hammer","Supino Declinado Halteres","Cross Over Polia Alta"],
+"6-3":["Cadeira Extensora","Leg Press","Agachamento Hack","Agachamento","Passadas com Halteres","Panturrilhas em Pé","Panturrilhas Sentado"],
+"6-5":["Tríceps Puxador Corda","Tríceps Supino","Mergulho para Tríceps","Tríceps Puxador Barra Curva","Tríceps Testa","Rosca Direta Barra EZ","Rosca Alternada","Rosca Concentrada Spider","Rosca Concentrada Unilateral","Rosca Martelo"],
+"6-6":["Desenvolvimento com Barra","Elevação Lateral Halteres","Elevação Frontal Barra","Elevação Posterior Sentado","Posterior de Ombros Cabo Alto","Encolhimento de Ombros com Barra"],
+
+"7-1":["Puxador Costas Pegada Inversa","Levantamento Terra","Remada Unilateral","Remada Curvada Pegada Inversa","Remada Cavalinho","Remada Sentado com Cabos","Hiperextensão Lombar","Pullover no Puxador"],
+"7-2":["Supino Inclinado Barra","Supino Reto Halteres","Supino Hammer","Voador","Supino Declinado","Cross Over Polia Alta","Crucifixo Declinado"],
+"7-3":["Cadeira Extensora","Agachamento Frontal","Agachamento Hack","Passadas com Barra","Cadeira Extensora 2","Mesa Flexora","Stiff","Flexora Unilateral","Leg Press Pés no Alto","Panturrilhas em Pé","Panturrilhas Sentado"],
+"7-5":["Tríceps Puxador Barra Curva","Tríceps Puxador Corda Por Trás","Tríceps Supino","Tríceps Testa","Rosca Direta","Rosca Alternada Sentado","Rosca Scott","Rosca Scott Unilateral","Rosca Inversa"],
+"7-6":["Desenvolvimento com Barra","Elevação Lateral Halteres","Elevação Frontal Barra","Elevação Posterior Sentado","Posterior de Ombros com Cabos","Elevação Lateral com Cabos","Encolhimento de Ombros com Barra"],
+
+"8-1":["Puxador Costas Pegada Inversa","Remada Sentado com Cabos","Remada Cavalinho","Pullover com Barra","Remada na Máquina","Remada Unilateral","Hiperextensão Lombar"],
+"8-2":["Supino Inclinado Halteres","Supino Reto Barra","Crucifixo Reto","Supino Declinado","Crucifixo Inclinado","Supino Declinado Halteres","Cross Over Polia Alta"],
+"8-3":["Cadeira Extensora","Agachamento Frontal","Agachamento Hack","Agachamento Pistol no Smith","Cadeira Flexora","Mesa Flexora","Stiff","Leg Press Pés no Alto","Cadeira Adutora","Cadeira Abdutora","Panturrilhas em Pé","Panturrilhas Sentado"],
+"8-5":["Tríceps Puxador Corda","Tríceps Puxador Barra Reta","Mergulho para Tríceps","Tríceps Supino","Tríceps Francês","Rosca Direta","Rosca Scott Unilateral","Rosca Concentrada Unilateral","Rosca Alternada Sentado","Rosca Martelo"],
+"8-6":["Desenvolvimento com Halteres","Elevação Lateral Halteres","Desenvolvimento com Barra","Elevação Lateral Cabos","Elevação Frontal Barra","Elevação Lateral Sentado","Encolhimento de Ombros Halteres","Encolhimento de Ombros com Barra"]
+};
+
+// -------- navegação principal --------
+function abrir(id,btn){
+  document.querySelectorAll(".main-section").forEach(s=>s.classList.remove("active"));
+  document.querySelectorAll("nav.main button").forEach(b=>b.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  btn.classList.add("active");
+  window.scrollTo(0,0);
+}
+
+// -------- montar treinos --------
+const navSemanas=document.getElementById("navSemanas");
+const container=document.getElementById("container");
+
+for(let s=1;s<=8;s++){
+  const btn=document.createElement("button");
+  btn.textContent="S"+s;
+  btn.onclick=()=>{
+    document.querySelectorAll(".semana").forEach(x=>x.style.display="none");
+    document.querySelectorAll("nav.semanas button").forEach(b=>b.classList.remove("active"));
+    document.getElementById("Sem"+s).style.display="block";
+    btn.classList.add("active");
+    calc();
+  };
+  navSemanas.appendChild(btn);
+
+  const sem=document.createElement("div");
+  sem.className="semana";
+  sem.id="Sem"+s;
+  sem.style.display="none";
+
+  const card=document.createElement("div");
+  card.className="card";
+  card.innerHTML=`<h2>Semana ${s}</h2>`;
+
+  const diasNav=document.createElement("div");
+  diasNav.className="dias";
+
+  for(let d=1;d<=7;d++){
+    const b=document.createElement("button");
+    b.textContent="Dia "+d;
+    b.onclick=()=>{
+      document.querySelectorAll(`#Sem${s} [id^="S${s}D"]`).forEach(x=>x.style.display="none");
+      document.querySelectorAll(`#Sem${s} .dias button`).forEach(x=>x.classList.remove("active-dia"));
+      document.getElementById(`S${s}D${d}`).style.display="block";
+      b.classList.add("active-dia");
+    };
+    if(d===1) b.classList.add("active-dia");
+    diasNav.appendChild(b);
+  }
+  card.appendChild(diasNav);
+
+  for(let d=1;d<=7;d++){
+    const bloco=document.createElement("div");
+    bloco.id=`S${s}D${d}`;
+    bloco.style.display=d===1?"block":"none";
+    bloco.innerHTML=`<h3>Dia ${d}</h3><div class="progress"><span></span></div>`;
+
+    if(d!==4){
+      const keyCardio=`CHK_${s}_${d}_cardio`;
+      const exDiv=document.createElement("div");
+      exDiv.className="exercicio";
+      exDiv.innerHTML=`
+        <label>
+          <input type="checkbox" data-key="${keyCardio}"> Cardio – 30 min
+        </label>`;
+      bloco.appendChild(exDiv);
+    }
+
+    const lista=treinos[`${s}-${d}`];
+    if(lista){
+      lista.forEach(ex=>{
+        const k=`CHK_${s}_${d}_${ex}`;
+        const exId=`${s}_${d}_${ex}`;
+        const exDiv=document.createElement("div");
+        exDiv.className="exercicio";
+        exDiv.innerHTML=`<label><input type="checkbox" data-key="${k}"> ${ex}</label>`;
+        for(let i=1;i<=4;i++){
+          const serie=document.createElement("div");
+          serie.className="serie";
+          const inKg=document.createElement("input");
+          inKg.placeholder="kg";
+          inKg.value=localStorage.getItem(exId+'_kg'+i)||"";
+          inKg.oninput=()=>localStorage.setItem(exId+'_kg'+i,inKg.value);
+          const inRep=document.createElement("input");
+          inRep.placeholder="rep";
+          inRep.value=localStorage.getItem(exId+'_rep'+i)||"12";
+          inRep.oninput=()=>localStorage.setItem(exId+'_rep'+i,inRep.value);
+          serie.appendChild(inKg);
+          serie.appendChild(inRep);
+          exDiv.appendChild(serie);
+        }
+        bloco.appendChild(exDiv);
+      });
+    }
+    card.appendChild(bloco);
+  }
+
+  sem.appendChild(card);
+  container.appendChild(sem);
+}
+
+// -------- DIETA --------
+const dietaContainer=document.getElementById("dietaContainer");
+const diasSemana=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+const refeicoes=["Jejum","Café da Manhã","Lanche 1","Almoço","Lanche 2","Pré-Treino","Pós-Treino","Jantar","Ceia"];
+
+diasSemana.forEach(d=>{
+  const h3=document.createElement("h3");
+  h3.textContent=d;
+  dietaContainer.appendChild(h3);
+  refeicoes.forEach(r=>{
+    const k=`dieta_${d}_${r}`;
+    const ta=document.createElement("textarea");
+    ta.placeholder=r;
+    ta.value=localStorage.getItem(k)||"";
+    ta.oninput=()=>localStorage.setItem(k,ta.value);
+    dietaContainer.appendChild(ta);
+  });
+});
+
+// -------- MEDIDAS --------
+const medidasContainer=document.getElementById("medidasContainer");
+[
+"Peso (kg)","Cintura","Braço Direito","Braço Esquerdo",
+"Coxa Direita","Coxa Esquerda",
+"Panturrilha Direita","Panturrilha Esquerda",
+"Peito","Antebraço Direito","Antebraço Esquerdo","Ombro"
+].forEach(m=>{
+  const k="med_"+m;
+  const input=document.createElement("input");
+  input.className="medida-input";
+  input.placeholder=m;
+  input.value=localStorage.getItem(k)||"";
+  input.oninput=()=>localStorage.setItem(k,input.value);
+  medidasContainer.appendChild(input);
+});
+
+// -------- Progresso --------
+function calc(){
+  document.querySelectorAll(".progress span").forEach(span=>{
+    const bloco=span.closest('[id^="S"]');
+    if(!bloco) return;
+    const checks=bloco.querySelectorAll('.exercicio input[type=checkbox]');
+    const m=[...checks].filter(c=>c.checked).length;
+    const p=checks.length?Math.round(m/checks.length*100):0;
+    span.style.width=p+"%";
+  });
+
+  const all=document.querySelectorAll('input[type=checkbox]');
+  const totalMarc=[...all].filter(c=>c.checked).length;
+  const geral=all.length?Math.round(totalMarc/all.length*100):0;
+  document.getElementById("progGeral").style.width=geral+"%";
+  document.getElementById("txtGeral").innerText=geral+"%";
+}
+
+// restaurar checks
+function restaurarChecks(){
+  document.querySelectorAll('input[type=checkbox]').forEach(c=>{
+    const key=c.dataset.key;
+    if(key && localStorage.getItem(key)==="true") c.checked=true;
+  });
+}
+
+// event delegation para checkboxes
+document.addEventListener("change",e=>{
+  if(e.target.matches('input[type=checkbox][data-key]')){
+    localStorage.setItem(e.target.dataset.key,e.target.checked);
+    calc();
+  }
+});
+
+// inicialização
+window.addEventListener("load",()=>{
+  if(navSemanas.children.length>0) navSemanas.children[0].click();
+  restaurarChecks();
+  calc();
+});
+
+// -------- Service Worker PWA --------
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
